@@ -10,9 +10,9 @@ terraform {
 }
 
 resource "azurerm_storage_account" "fn_storage" {
-  name                     = "stfn${replace(var.owner, "-", "")}"
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
+  name                = "stfn${replace(var.owner, "-", "")}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
 
   account_tier             = "Standard"
   account_replication_type = "LRS"
