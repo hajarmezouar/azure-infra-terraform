@@ -76,12 +76,41 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+  lint:
+    name: Terraform Lint
+    runs-on: ubuntu-latest
+
+    needs:
+      - fmt
+      - validate
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Show TFLint version
+        run: tflint --version
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint
+
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
     needs:
       - fmt
       - validate
+      - lint
 
     if: github.event_name == 'pull_request'
 
