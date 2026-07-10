@@ -16,6 +16,11 @@ permissions:
 env:
   TF_WORKING_DIR: terraform
 
+  TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+  TF_VAR_resource_group_name: ${{ vars.TF_VAR_resource_group_name }}
+  TF_VAR_location: ${{ vars.TF_VAR_location }}
+  TF_VAR_app_service_plan_name: ${{ vars.TF_VAR_app_service_plan_name }}
+  TF_VAR_tags: ${{ vars.TF_VAR_tags }}
 jobs:
 
   fmt:
@@ -45,7 +50,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
