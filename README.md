@@ -2,13 +2,13 @@
 
 ## Overview
 
-This project provisions a complete Azure infrastructure using **Terraform**, following Infrastructure as Code (IaC) best practices.
+This project provisions a complete Microsoft Azure infrastructure using **Terraform**, following Infrastructure as Code (IaC) best practices.
 
-The infrastructure is organized into reusable Terraform modules and deployed to **Microsoft Azure** using an **Azure for Students** subscription.
+The infrastructure is organized into reusable Terraform modules and deployed on an **Azure for Students** subscription. A **remote Terraform backend** stored in Azure Blob Storage is used to securely manage the Terraform state and enable consistent deployments.
 
-A **remote Terraform backend** stored in Azure Blob Storage is used to securely store the Terraform state and enable collaboration.
+Infrastructure provisioning is automated through reusable Bash scripts, while deployment is integrated with **GitHub Actions** using **OpenID Connect (OIDC)** authentication. This approach removes the need to store Azure client secrets by allowing GitHub Actions to authenticate securely with Azure through a federated identity.
 
-This project is the Terraform continuation of the previous **Azure Infrastructure CLI** project, where the same infrastructure was deployed manually using Azure CLI. The objective is to replace manual provisioning with reusable, declarative Terraform code.
+This project is the Terraform continuation of the previous **Azure Infrastructure CLI** project, where the same infrastructure was provisioned manually using Azure CLI. The objective was to replace imperative provisioning with reusable, modular and automated Infrastructure as Code.
 
 ---
 
@@ -17,9 +17,16 @@ This project is the Terraform continuation of the previous **Azure Infrastructur
 - Terraform
 - Microsoft Azure
 - Azure Resource Manager (AzureRM)
+- Azure Storage
+- Azure App Service
+- Azure Functions
+- Azure Container Instance
+- Azure Networking
 - Azure CLI
 - Bash
 - Git & GitHub
+- GitHub Actions
+- OpenID Connect (OIDC)
 
 ---
 
@@ -82,11 +89,13 @@ azure-infra-terraform/
 │
 ├── .github/
 │   └── workflows/
+│       └── terraform.yml
 │
 ├── scripts/
 │   ├── config.sh
 │   ├── backend.sh
 │   └── terraform-init.sh
+│   └── github-oidc.sh
 │
 ├── terraform/
 │   ├── backend.tf
@@ -185,28 +194,15 @@ The backend is created automatically using a Bash script.
 
 ## config.sh
 
-Contains the common project configuration.
-
-Example:
-
-```bash
-OWNER="hajar-mezouar"
-
-LOCATION="germanywestcentral"
-
-RESOURCE_GROUP="rg-hajar-terraform"
-
-RG_BACKEND="rg-tfstate-${OWNER}"
-SA_BACKEND="ststate${OWNER//-/}"
-CONTAINER_NAME="tfstate"
-BACKEND_KEY="${OWNER}.terraform.tfstate"
-```
+Stores the common project configuration used by all automation scripts, including the Azure region, Resource Group, backend configuration and GitHub repository information.
 
 ---
 
 ## backend.sh
 
-Creates automatically:
+Creates the Azure Storage backend used to store the Terraform state remotely.
+
+Resources created:
 
 - Backend Resource Group
 - Storage Account
@@ -216,9 +212,49 @@ Creates automatically:
 
 ## terraform-init.sh
 
-Initializes Terraform using the remote Azure backend.
+Initializes Terraform using the Azure Blob Storage remote backend.
 
 ---
+
+## github-oidc.sh
+
+Automates the configuration of Azure OpenID Connect (OIDC) authentication for GitHub Actions.
+
+The script:
+
+- Creates (or reuses) an Azure App Registration
+- Creates (or reuses) a Service Principal
+- Creates the Federated Credential
+- Displays the values required for the GitHub Environment Secrets
+
+---
+
+# GitHub Actions CI/CD
+
+Infrastructure deployment is automated using **GitHub Actions**.
+
+The workflow is located in:
+
+```text
+.github/workflows/terraform.yml
+```
+
+The pipeline performs:
+
+- Terraform formatting check
+- Terraform validation
+- Terraform plan on Pull Requests
+- Terraform apply on pushes to the `main` branch
+
+GitHub Actions authenticates to Azure using **OpenID Connect (OIDC)**, eliminating the need to store Azure client secrets.
+
+Required GitHub Environment Secrets:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+
+--- 
 
 # Usage
 
@@ -335,6 +371,11 @@ During this project I practiced:
 - Azure Resource Providers
 - Networking
 - Bash Automation
+- GitHub Actions
+- OpenID Connect (OIDC)
+- Azure Entra ID
+- Federated Credentials
+- CI/CD Pipelines
 
 ---
 
@@ -412,6 +453,10 @@ Automated backend creation and Terraform initialization using reusable Bash scri
 - Bash Scripting
 - Git Version Control
 - Cloud Infrastructure Automation
+- GitHub Actions
+- CI/CD Pipelines
+- OpenID Connect (OIDC)
+- Azure Entra ID
 
 ---
 
