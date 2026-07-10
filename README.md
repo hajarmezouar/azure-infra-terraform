@@ -254,7 +254,7 @@ Required GitHub Environment Secrets:
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 
---- 
+---
 
 # Usage
 
