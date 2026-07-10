@@ -2,11 +2,13 @@
 
 ## Overview
 
-This project provisions Azure infrastructure using **Terraform** following Infrastructure as Code (IaC) best practices.
+This project provisions a complete Azure infrastructure using **Terraform**, following Infrastructure as Code (IaC) best practices.
 
-The infrastructure is organized into reusable Terraform modules and deployed to Microsoft Azure. A remote Terraform backend stored in Azure Blob Storage is used to manage the Terraform state securely and support collaboration.
+The infrastructure is organized into reusable Terraform modules and deployed to **Microsoft Azure** using an **Azure for Students** subscription.
 
-This project is the Terraform continuation of the previous **Azure Infrastructure CLI** project, where the same infrastructure was deployed manually using Azure CLI. The goal of this project is to replace manual resource provisioning with reusable, declarative Terraform code.
+A **remote Terraform backend** stored in Azure Blob Storage is used to securely store the Terraform state and enable collaboration.
+
+This project is the Terraform continuation of the previous **Azure Infrastructure CLI** project, where the same infrastructure was deployed manually using Azure CLI. The objective is to replace manual provisioning with reusable, declarative Terraform code.
 
 ---
 
@@ -14,6 +16,7 @@ This project is the Terraform continuation of the previous **Azure Infrastructur
 
 - Terraform
 - Microsoft Azure
+- Azure Resource Manager (AzureRM)
 - Azure CLI
 - Bash
 - Git & GitHub
@@ -22,14 +25,53 @@ This project is the Terraform continuation of the previous **Azure Infrastructur
 
 # Project Architecture
 
-The project provisions the following Azure resources:
+The infrastructure provisions the following Azure resources:
 
+- Azure Resource Group
+- Azure App Service Plan (Linux B1)
+- Azure Linux Web App (Python 3.11)
+- Azure Linux Function App (Python 3.11)
 - Azure Storage Account
-- Blob Containers
-- Linux App Service
-- Linux Function App
+- Azure Storage Account for Function App
+- Azure Blob Containers (`api-logs`, `api-config`)
 - Azure Container Instance (NGINX)
-- Azure Remote Backend (Blob Storage)
+- Azure Virtual Network
+- Frontend Subnet
+- Backend Subnet
+- Network Security Group
+- Network Security Group Association
+- Remote Terraform Backend (Azure Blob Storage)
+
+---
+
+# Architecture Overview
+
+```text
+                          Terraform
+                              │
+                              ▼
+                   Azure Resource Group
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+ Storage Account      App Service Plan      Container Instance
+        │                     │
+        │             ┌───────┴────────┐
+        ▼             ▼                ▼
+ Blob Containers   Web App       Function App
+                                         │
+                                         ▼
+                              Function Storage Account
+
+                     ▼
+              Virtual Network
+            ├── Frontend Subnet
+            └── Backend Subnet
+                     │
+                     ▼
+          Network Security Group
+```
 
 ---
 
@@ -37,6 +79,9 @@ The project provisions the following Azure resources:
 
 ```text
 azure-infra-terraform/
+│
+├── .github/
+│   └── workflows/
 │
 ├── scripts/
 │   ├── config.sh
@@ -54,7 +99,8 @@ azure-infra-terraform/
 │       ├── storage/
 │       ├── app-service/
 │       ├── function-app/
-│       └── container/
+│       ├── container/
+│       └── network/
 │
 └── README.md
 ```
@@ -77,12 +123,11 @@ Creates:
 
 Creates:
 
-- Linux App Service
-- Python 3.11 runtime
+- Azure App Service Plan (Linux B1)
+- Linux Web App
+- Python 3.11 Runtime
 - HTTPS Only
 - TLS 1.2
-
-Uses the shared App Service Plan provided by the trainer.
 
 ---
 
@@ -92,7 +137,7 @@ Creates:
 
 - Dedicated Storage Account
 - Linux Function App
-- Python 3.11 runtime
+- Python 3.11 Runtime
 
 ---
 
@@ -101,9 +146,21 @@ Creates:
 Creates:
 
 - Azure Container Instance
-- Public IP
+- Public IP Address
 - Public DNS Name
-- NGINX container
+- NGINX Container
+
+---
+
+## Network
+
+Creates:
+
+- Azure Virtual Network
+- Frontend Subnet
+- Backend Subnet
+- Network Security Group
+- NSG Association
 
 ---
 
@@ -115,12 +172,12 @@ Backend resources:
 
 | Resource | Name |
 |----------|------|
-| Resource Group | rg-tfstate-hajar-mezouar |
-| Storage Account | ststatehajarmezouar |
-| Blob Container | tfstate |
-| State File | hajar-mezouar.terraform.tfstate |
+| Resource Group | `rg-tfstate-hajar-mezouar` |
+| Storage Account | `ststatehajarmezouar` |
+| Blob Container | `tfstate` |
+| State File | `hajar-mezouar.terraform.tfstate` |
 
-The backend is initialized automatically using a Bash script.
+The backend is created automatically using a Bash script.
 
 ---
 
@@ -135,13 +192,13 @@ Example:
 ```bash
 OWNER="hajar-mezouar"
 
-LOCATION="francecentral"
+LOCATION="germanywestcentral"
 
-RESOURCE_GROUP="hmezouarRG"
+RESOURCE_GROUP="rg-hajar-terraform"
 
-BACKEND_RG="rg-tfstate-${OWNER}"
-BACKEND_STORAGE="ststate${OWNER//-/}"
-BACKEND_CONTAINER="tfstate"
+RG_BACKEND="rg-tfstate-${OWNER}"
+SA_BACKEND="ststate${OWNER//-/}"
+CONTAINER_NAME="tfstate"
 BACKEND_KEY="${OWNER}.terraform.tfstate"
 ```
 
@@ -149,7 +206,7 @@ BACKEND_KEY="${OWNER}.terraform.tfstate"
 
 ## backend.sh
 
-Automatically creates:
+Creates automatically:
 
 - Backend Resource Group
 - Storage Account
@@ -159,7 +216,7 @@ Automatically creates:
 
 ## terraform-init.sh
 
-Initializes Terraform with the Azure backend.
+Initializes Terraform using the remote Azure backend.
 
 ---
 
@@ -171,13 +228,13 @@ Initializes Terraform with the Azure backend.
 az login
 ```
 
-Select the subscription
+Select the subscription:
 
 ```bash
 az account set --subscription "Azure for Students"
 ```
 
-Verify
+Verify:
 
 ```bash
 az account show
@@ -185,7 +242,7 @@ az account show
 
 ---
 
-## Create the backend
+## Create the Terraform backend
 
 ```bash
 ./scripts/backend.sh
@@ -201,7 +258,7 @@ az account show
 
 ---
 
-## Format
+## Format Terraform code
 
 ```bash
 terraform fmt
@@ -209,7 +266,7 @@ terraform fmt
 
 ---
 
-## Validate
+## Validate configuration
 
 ```bash
 terraform validate
@@ -217,7 +274,7 @@ terraform validate
 
 ---
 
-## Plan
+## Preview infrastructure
 
 ```bash
 terraform plan
@@ -225,7 +282,7 @@ terraform plan
 
 ---
 
-## Deploy
+## Deploy infrastructure
 
 ```bash
 terraform apply
@@ -233,10 +290,30 @@ terraform apply
 
 ---
 
-## Destroy
+## Destroy infrastructure
 
 ```bash
 terraform destroy
+```
+
+---
+
+# Outputs
+
+After deployment, Terraform returns:
+
+- `app_service_url`
+- `function_app_url`
+- `container_fqdn`
+- `storage_account_name`
+
+Example:
+
+```text
+app_service_url      = https://app-hajar-mezouar-tf.azurewebsites.net
+function_app_url     = https://fn-hajar-mezouar-tf.azurewebsites.net
+container_fqdn       = http://aci-hajar-mezouar-tf.germanywestcentral.azurecontainer.io
+storage_account_name = sthajarmezouartf
 ```
 
 ---
@@ -250,24 +327,24 @@ During this project I practiced:
 - Terraform Modules
 - Variables
 - Outputs
-- Data Sources
 - Resource Dependencies
 - Remote State
 - AzureRM Backend
-- State Migration
 - Azure Blob Storage
+- State Migration
 - Azure Resource Providers
+- Networking
 - Bash Automation
 
 ---
 
 # Challenges Encountered
 
-### Azure Resource Provider
+## Azure Resource Provider
 
 The `Microsoft.Storage` resource provider was not registered on the Azure subscription.
 
-Resolution:
+**Resolution**
 
 ```bash
 az provider register --namespace Microsoft.Storage
@@ -275,13 +352,47 @@ az provider register --namespace Microsoft.Storage
 
 ---
 
-### Remote Backend
+## Remote Backend
 
 Migrated from a local Terraform state to an Azure Blob Storage backend.
 
+**Resolution**
+
+Created reusable Bash scripts to automate backend creation and Terraform initialization.
+
 ---
 
-### Bash Automation
+## Azure Policy Restrictions
+
+The Azure for Students subscription restricts deployments to a predefined list of Azure regions.
+
+**Resolution**
+
+Inspected the assigned Azure Policy and deployed the infrastructure to an allowed region (`germanywestcentral`).
+
+---
+
+## App Service Capacity
+
+The deployment initially failed in **France Central** because Azure couldn't allocate a **B1 App Service Plan**.
+
+**Resolution**
+
+Redeployed the infrastructure in **Germany West Central**, where capacity was available.
+
+---
+
+## Terraform State Recovery
+
+A partial deployment caused Azure resources to exist while Terraform had not fully recorded them in its state.
+
+**Resolution**
+
+Used Terraform state refresh and resource imports to synchronize the Terraform state with the existing Azure infrastructure.
+
+---
+
+## Bash Automation
 
 Automated backend creation and Terraform initialization using reusable Bash scripts.
 
@@ -290,12 +401,14 @@ Automated backend creation and Terraform initialization using reusable Bash scri
 # Skills Demonstrated
 
 - Infrastructure as Code
-- Azure Administration
 - Terraform Module Design
+- Azure Administration
+- Azure Networking
 - Azure Storage
 - Azure App Services
 - Azure Functions
 - Azure Container Instances
+- Remote Terraform Backend
 - Bash Scripting
 - Git Version Control
 - Cloud Infrastructure Automation
@@ -305,9 +418,9 @@ Automated backend creation and Terraform initialization using reusable Bash scri
 # Future Improvements
 
 - GitHub Actions CI/CD
-- Terraform validation in CI
-- Terraform Plan and Apply automation
 - OpenID Connect (OIDC) authentication
-- Separate Development and Production environments
+- Automated Terraform Format, Validate, Plan and Apply
+- Multiple environments (Development, Staging, Production)
 - Terraform Workspaces
-- Remote State Locking
+- Azure Key Vault integration
+- Monitoring and Diagnostics
