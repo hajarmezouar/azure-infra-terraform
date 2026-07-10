@@ -1,11 +1,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# main.tf — Ressources Azure à provisionner avec Terraform
-#
-# Ce fichier est votre point d'entrée. Complétez les TODO au fil du TP.
+# main.tf — Azure infrastructure managed by Terraform
 # ──────────────────────────────────────────────────────────────────────────────
 
-# ── Tags communs à toutes les ressources ──────────────────────────────────────
-# Ces tags sont mergés automatiquement dans chaque module via var.tags
+# ── Common tags ───────────────────────────────────────────────────────────────
 
 locals {
   tags = merge(
@@ -18,70 +15,81 @@ locals {
   )
 }
 
-# ── Data sources ──────────────────────────────────────────────────────────────
-# Un data source LIT une ressource existante sans la créer.
+# ── Resource Group ────────────────────────────────────────────────────────────
 
-# Resource Group pré-créé par le formateur — ne jamais le gérer en Terraform
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
+
+  tags = local.tags
 }
 
-# Plan App Service partagé (dans un Resource Group séparé)
-data "azurerm_service_plan" "shared" {
-  name                = var.shared_plan_name
-  resource_group_name = var.shared_rg_name
+# ── App Service Plan ──────────────────────────────────────────────────────────
+
+resource "azurerm_service_plan" "plan" {
+  name                = var.app_service_plan_name
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+
+  os_type  = "Linux"
+  sku_name = "B1"
+
+  tags = local.tags
 }
 
-# ── Storage ─────────────────────────────────────────────────────────
+# ── Storage ───────────────────────────────────────────────────────────────────
 
 module "storage" {
-  source              = "./modules/storage"
+  source = "./modules/storage"
+
   owner               = var.owner
-  resource_group_name = var.resource_group_name
-  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   tags                = local.tags
 }
 
-# ── App Service ─────────────────────────────────────────────────────
+# ── App Service ───────────────────────────────────────────────────────────────
 
 module "app_service" {
-  source              = "./modules/app-service"
+  source = "./modules/app-service"
+
   owner               = var.owner
-  resource_group_name = data.azurerm_resource_group.rg.name
-  service_plan_id     = data.azurerm_service_plan.shared.id
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  service_plan_id     = azurerm_service_plan.plan.id
   tags                = local.tags
 }
 
-# ── Function App ────────────────────────────────────────────────────
+# ── Function App ──────────────────────────────────────────────────────────────
 
 module "function_app" {
-  source              = "./modules/function-app"
+  source = "./modules/function-app"
+
   owner               = var.owner
-  resource_group_name = data.azurerm_resource_group.rg.name
-  location            = var.location
-  service_plan_id     = data.azurerm_service_plan.shared.id
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  service_plan_id     = azurerm_service_plan.plan.id
   tags                = local.tags
 }
 
-# ── Container Instance ──────────────────────────────────────────────
+# ── Container Instance ────────────────────────────────────────────────────────
 
 module "container" {
-  source              = "./modules/container"
+  source = "./modules/container"
+
   owner               = var.owner
-  resource_group_name = data.azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   tags                = local.tags
 }
 
-# ── Network (Étape 7) ─────────────────────────────────────────────────────────
-# TODO : appeler le module "./modules/network"
-# Paramètres à passer : owner, resource_group_name, location, tags
+# ── Network ───────────────────────────────────────────────────────────────────
 
-# module "network" {
-#   source = "./modules/network"
-#
-#   owner               = ???
-#   resource_group_name = ???
-#   location            = ???
-#   tags                = ???
-# }
+module "network" {
+  source = "./modules/network"
+
+  owner               = var.owner
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  tags                = local.tags
+}
