@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "Terraform action to execute"
+        description: "Terraform action"
         required: true
         type: choice
         options:
@@ -13,20 +13,30 @@ on:
           - destroy
 
 permissions:
-  id-token: write
   contents: read
+  id-token: write
 
 env:
   TF_WORKING_DIR: terraform
 
 jobs:
   deploy:
-    name: Terraform Deployment
+    name: Terraform Operations
+
     runs-on: ubuntu-latest
+
+    environment: production
 
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
+
+    env:
+      TF_VAR_owner: ${{ vars.TF_VAR_OWNER }}
+      TF_VAR_resource_group_name: ${{ vars.TF_VAR_RESOURCE_GROUP_NAME }}
+      TF_VAR_app_service_plan_name: ${{ vars.TF_VAR_APP_SERVICE_PLAN_NAME }}
+      TF_VAR_location: ${{ vars.TF_VAR_LOCATION }}
+      TF_VAR_tags: ${{ vars.TF_VAR_TAGS }}
 
     steps:
       - name: Checkout repository
@@ -40,14 +50,12 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.15.7
+        uses: hashicorp/setup-terraform@v4
 
       - name: Make scripts executable
         run: chmod +x ../scripts/*.sh
 
-      - name: Terraform Init
+      - name: Terraform Init (Remote Backend)
         run: ../scripts/terraform-init.sh
 
       - name: Display selected action
@@ -56,17 +64,23 @@ jobs:
       - name: Execute Terraform
         run: |
           case "${{ github.event.inputs.action }}" in
+
             plan)
               terraform plan -input=false
               ;;
+
             apply)
               terraform apply -auto-approve -input=false
               ;;
+
             destroy)
               terraform destroy -auto-approve -input=false
               ;;
+
             *)
-              echo "Invalid action"
+              echo "Unknown action."
               exit 1
               ;;
+
           esac
+          
