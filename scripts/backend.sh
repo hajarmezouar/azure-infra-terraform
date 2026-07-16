@@ -5,8 +5,8 @@ set -e
 # ==========================================
 # Terraform Backend Provisioning
 # ==========================================
-source "$(dirname "$0")/config.sh"
 
+source "$(dirname "$0")/config.sh"
 
 echo "========================================="
 echo "Creating Terraform Backend"
@@ -29,12 +29,26 @@ az storage account create \
     --sku Standard_LRS
 
 echo ""
+echo "Waiting 20 seconds for Storage Account provisioning..."
+
+sleep 20
+
+echo ""
+echo "Retrieving Storage Account key..."
+
+ACCOUNT_KEY=$(az storage account keys list \
+    --resource-group "$RG_BACKEND" \
+    --account-name "$SA_BACKEND" \
+    --query "[0].value" \
+    --output tsv)
+
+echo ""
 echo "Creating Blob Container..."
 
 az storage container create \
     --name "$CONTAINER_NAME" \
     --account-name "$SA_BACKEND" \
-    --auth-mode login
+    --account-key "$ACCOUNT_KEY"
 
 echo ""
 echo "========================================="
