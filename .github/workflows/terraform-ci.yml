@@ -198,3 +198,54 @@ jobs:
         with:
           name: terraform-plan
           path: terraform/tfplan
+
+# ==========================================================
+# Infracost
+# ==========================================================
+
+  infracost:
+    name: Infracost Estimate
+    runs-on: ubuntu-latest
+
+    needs: plan
+
+    if: github.actor != 'dependabot[bot]'
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install Infracost
+        uses: infracost/actions/setup@v3
+
+      - name: Generate Infracost JSON
+        run: |
+          infracost breakdown \
+            --path tfplan \
+            --format json \
+            --out-file infracost.json
+
+      - name: Generate Infracost HTML report
+        run: |
+          infracost output \
+            --path infracost.json \
+            --format html \
+            --out-file infracost.html
+
+      - name: Upload Infracost reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: infracost-report
+          path: |
+            terraform/infracost.json
+            terraform/infracost.html
