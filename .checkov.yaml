@@ -1,0 +1,54 @@
+skip-check:
+
+  # ==========================================================
+  # App Service - Enterprise / Production recommendations
+  # ==========================================================
+
+  - CKV_AZURE_211 # Production App Service SKU
+  - CKV_AZURE_212 # Minimum instances
+  - CKV_AZURE_225 # Zone redundancy
+
+  # ==========================================================
+  # App Service Security
+  # ==========================================================
+
+  - CKV_AZURE_13
+  - CKV_AZURE_16
+  - CKV_AZURE_17
+  - CKV_AZURE_18
+  - CKV_AZURE_63
+  - CKV_AZURE_65
+  - CKV_AZURE_66
+  - CKV_AZURE_71
+  - CKV_AZURE_78
+  - CKV_AZURE_88
+  - CKV_AZURE_213
+  - CKV_AZURE_221
+  - CKV_AZURE_222
+
+  # ==========================================================
+  # Azure Container Instance
+  # ==========================================================
+
+  - CKV_AZURE_98
+  - CKV_AZURE_245
+  - CKV2_AZURE_28
+
+  # ==========================================================
+  # Storage Enterprise Features
+  # ==========================================================
+
+  - CKV_AZURE_33
+  - CKV_AZURE_59
+  - CKV_AZURE_190
+  - CKV_AZURE_206
+
+  - CKV2_AZURE_1
+  - CKV2_AZURE_21
+  - CKV2_AZURE_33
+  - CKV2_AZURE_38
+  - CKV2_AZURE_40
+  - CKV2_AZURE_41
+  - CKV_AZURE_43 # Azure-compliant naming used for training project
+  - CKV2_AZURE_47
+  - CKV_AZURE_160
