@@ -9,7 +9,7 @@ set -e
 source "$(dirname "$0")/config.sh"
 
 echo "========================================="
-echo "Creating Terraform Backend"
+echo "======Creating Terraform Backend========="
 echo "========================================="
 
 echo ""
