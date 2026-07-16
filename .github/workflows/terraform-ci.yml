@@ -3,16 +3,17 @@ name: Terraform CI
 on:
   pull_request:
     branches:
-      - main
+      - "**"
 
   push:
     branches:
-      - main
+      - "**"
 
 permissions:
   contents: read
   id-token: write
   pull-requests: write
+  security-events: write
 
 env:
   TF_WORKING_DIR: terraform
@@ -62,7 +63,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
 
-      # Validation does NOT need Azure
+      - name: Cache Terraform directory
+        uses: actions/cache@v4
+        with:
+          path: terraform/.terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+
       - name: Terraform Init (local only)
         run: terraform init -backend=false -input=false
 
@@ -97,6 +103,39 @@ jobs:
         run: tflint
 
 # ==========================================================
+# Terraform Checkov
+# ==========================================================
+
+  checkov:
+    name: Terraform Checkov
+    runs-on: ubuntu-latest
+
+    needs: lint
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: reports/results.sarif
+          quiet: true
+
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/results.sarif
+
+# ==========================================================
 # Terraform Plan
 # ==========================================================
 
@@ -104,7 +143,7 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
 
-    needs: lint
+    needs: checkov
 
     # Dependabot has no Azure credentials
     if: github.actor != 'dependabot[bot]'
@@ -134,6 +173,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
 
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+
+      - name: Configure Terraform plugin cache
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraformrc
+
       - name: Make scripts executable
         run: chmod +x ../scripts/*.sh
 
@@ -141,4 +191,10 @@ jobs:
         run: ../scripts/terraform-init.sh
 
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -out=tfplan -input=false
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/tfplan

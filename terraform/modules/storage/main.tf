@@ -16,7 +16,7 @@ resource "azurerm_storage_account" "sa" {
   account_replication_type        = "LRS"
   account_kind                    = "StorageV2"
   min_tls_version                 = "TLS1_2"
-  allow_nested_items_to_be_public = true
+  allow_nested_items_to_be_public = false
   tags                            = var.tags
 }
 
@@ -29,5 +29,5 @@ resource "azurerm_storage_container" "api_logs" {
 resource "azurerm_storage_container" "api_config" {
   name                  = "api-config"
   storage_account_id    = azurerm_storage_account.sa.id
-  container_access_type = "blob"
+  container_access_type = "private"
 }

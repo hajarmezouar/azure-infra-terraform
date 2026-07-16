@@ -17,7 +17,7 @@ resource "azurerm_container_group" "aci" {
   os_type             = "Linux"
   container {
     name   = "nginx"
-    image  = "nginx:latest"
+    image  = "nginx:1.27"
     cpu    = 0.5
     memory = 0.5
     ports {
