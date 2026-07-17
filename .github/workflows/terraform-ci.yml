@@ -226,7 +226,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Install Infracost
-        uses: infracost/actions/setup@v3
+        uses: infracost/actions/setup@v4
 
       - name: Generate Infracost JSON
         run: |
